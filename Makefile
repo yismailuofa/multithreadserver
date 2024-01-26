@@ -16,4 +16,4 @@ client: client.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 clean:
-	rm -f *.o main client
+	rm -f *.o main client server_output_time_aggregated

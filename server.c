@@ -23,19 +23,18 @@ void *ServerAccess(void *args)
     char str[COM_BUFF_SIZE];
 
     read(clientFileDescriptor, str, COM_BUFF_SIZE);
-    printf("reading from client:%s\n", str);
+    printf("Reading from client: %s\n", str);
 
     ClientRequest req;
     ParseMsg(str, &req);
+    memset(str, 0, COM_BUFF_SIZE);
 
-    char *content = NULL;
     double start, end;
-
     GET_TIME(start);
     if (req.is_read)
     {
         pthread_rwlock_rdlock(&locks[req.pos]);
-        getContent(content, req.pos, data);
+        getContent(str, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
     }
     else
@@ -45,7 +44,7 @@ void *ServerAccess(void *args)
         pthread_rwlock_unlock(&locks[req.pos]);
 
         pthread_rwlock_rdlock(&locks[req.pos]);
-        getContent(content, req.pos, data);
+        getContent(str, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
     }
     GET_TIME(end);
@@ -56,7 +55,7 @@ void *ServerAccess(void *args)
     times[time_index++] = elapsed;
     pthread_mutex_unlock(&time_lock);
 
-    write(clientFileDescriptor, content, COM_BUFF_SIZE);
+    write(clientFileDescriptor, str, COM_BUFF_SIZE);
     close(clientFileDescriptor);
     return NULL;
 }
@@ -95,6 +94,8 @@ int main(int argc, char *argv[])
     sock_var.sin_addr.s_addr = inet_addr(ip);
     sock_var.sin_port = port;
     sock_var.sin_family = AF_INET;
+    setsockopt(serverFileDescriptor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+
     if (bind(serverFileDescriptor, (struct sockaddr *)&sock_var, sizeof(sock_var)) >= 0)
     {
         printf("socket has been created\n");
