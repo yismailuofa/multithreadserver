@@ -22,11 +22,12 @@ void *ServerAccess(void *args)
     int clientFileDescriptor = (intptr_t)args;
     char str[COM_BUFF_SIZE];
 
-    read(clientFileDescriptor, str, COM_BUFF_SIZE);
+    read(clientFileDescriptor, str, COM_BUFF_SIZE - 1);
+    str[COM_BUFF_SIZE - 1] = '\0';
 
     ClientRequest req;
     ParseMsg(str, &req);
-    memset(str, 0, COM_BUFF_SIZE);
+    memset(str, 0, COM_BUFF_SIZE - 1);
 
     double start, end;
     GET_TIME(start);
@@ -44,6 +45,7 @@ void *ServerAccess(void *args)
 
         // Make sure this is valid 🤣
         memcpy(str, req.msg, strlen(req.msg) + 1);
+        str[strlen(req.msg)] = '\0';
     }
     GET_TIME(end);
 
@@ -92,8 +94,9 @@ int main(int argc, char *argv[])
     sock_var.sin_addr.s_addr = inet_addr(ip);
     sock_var.sin_port = port;
     sock_var.sin_family = AF_INET;
-    setsockopt(serverFileDescriptor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
 
+    // Allow the socket to be reused
+    setsockopt(serverFileDescriptor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
     if (bind(serverFileDescriptor, (struct sockaddr *)&sock_var, sizeof(sock_var)) >= 0)
     {
         printf("socket has been created\n");
@@ -103,14 +106,12 @@ int main(int argc, char *argv[])
             for (i = 0; i < COM_NUM_REQUEST; i++) // can support COM_NUM_REQUESTs clients at a time
             {
                 clientFileDescriptor = accept(serverFileDescriptor, NULL, NULL);
-                printf("Accepted %d\n", i);
                 pthread_create(&t[i], NULL, ServerAccess, (void *)(long)clientFileDescriptor);
             }
 
             for (i = 0; i < COM_NUM_REQUEST; i++)
             {
                 pthread_join(t[i], NULL);
-                printf("Request %d completed\n", i);
             }
 
             saveTimes(times, COM_NUM_REQUEST);
@@ -123,6 +124,9 @@ int main(int argc, char *argv[])
     {
         printf("socket creation failed\n");
     }
+
+    // Close the socket
+    close(serverFileDescriptor);
 
     // Free data and locks
     for (int i = 0; i < n; i++)

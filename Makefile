@@ -7,7 +7,7 @@ LIBS=-lm -lpthread
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-all: server client
+all: server client attacker
 
 server: server.o
 	$(CC) -o main $^ $(CFLAGS) $(LIBS)
@@ -15,5 +15,8 @@ server: server.o
 client: client.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
+attacker: attacker.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+
 clean:
-	rm -f *.o main client server_output_time_aggregated
+	rm -f *.o main client attacker server_output_time_aggregated
