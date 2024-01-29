@@ -23,7 +23,6 @@ void *ServerAccess(void *args)
     char str[COM_BUFF_SIZE];
 
     read(clientFileDescriptor, str, COM_BUFF_SIZE);
-    printf("Reading from client: %s\n", str);
 
     ClientRequest req;
     ParseMsg(str, &req);
@@ -43,9 +42,8 @@ void *ServerAccess(void *args)
         setContent(req.msg, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
 
-        pthread_rwlock_rdlock(&locks[req.pos]);
-        getContent(str, req.pos, data);
-        pthread_rwlock_unlock(&locks[req.pos]);
+        // Make sure this is valid 🤣
+        memcpy(str, req.msg, strlen(req.msg) + 1);
     }
     GET_TIME(end);
 
@@ -105,13 +103,14 @@ int main(int argc, char *argv[])
             for (i = 0; i < COM_NUM_REQUEST; i++) // can support COM_NUM_REQUESTs clients at a time
             {
                 clientFileDescriptor = accept(serverFileDescriptor, NULL, NULL);
-                printf("Connected to client %d\n", clientFileDescriptor);
+                printf("Accepted %d\n", i);
                 pthread_create(&t[i], NULL, ServerAccess, (void *)(long)clientFileDescriptor);
             }
 
             for (i = 0; i < COM_NUM_REQUEST; i++)
             {
                 pthread_join(t[i], NULL);
+                printf("Request %d completed\n", i);
             }
 
             saveTimes(times, COM_NUM_REQUEST);
