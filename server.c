@@ -21,20 +21,22 @@ void *ServerAccess(void *args)
 {
     int clientFileDescriptor = (intptr_t)args;
     char str[COM_BUFF_SIZE];
-
-    read(clientFileDescriptor, str, COM_BUFF_SIZE - 1);
-    str[COM_BUFF_SIZE - 1] = '\0';
-
-    ClientRequest req;
-    ParseMsg(str, &req);
-    memset(str, 0, COM_BUFF_SIZE - 1);
-
+    char rec[COM_BUFF_SIZE];
     double start, end;
+    ClientRequest req;
+
+    read(clientFileDescriptor, str, COM_BUFF_SIZE);
+    str[COM_BUFF_SIZE - 1] = '\0';
+    
+    ParseMsg(str, &req);
+    //memset(str, 0, COM_BUFF_SIZE - 1);
+
+
     GET_TIME(start);
     if (req.is_read)
     {
         pthread_rwlock_rdlock(&locks[req.pos]);
-        getContent(str, req.pos, data);
+        getContent(rec, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
     }
     else
@@ -43,20 +45,24 @@ void *ServerAccess(void *args)
         setContent(req.msg, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
 
-        // Make sure this is valid 🤣
-        memcpy(str, req.msg, strlen(req.msg) + 1);
-        str[strlen(req.msg)] = '\0';
+        // // Make sure this is valid 🤣
+        // memcpy(str, req.msg, strlen(req.msg) + 1);
+        // str[strlen(req.msg)] = '\0';
+
+        pthread_rwlock_rdlock(&locks[req.pos]);
+        getContent(rec, req.pos, data);
+        pthread_rwlock_unlock(&locks[req.pos]);
     }
     GET_TIME(end);
 
-    double elapsed = end - start;
+    write(clientFileDescriptor, rec, COM_BUFF_SIZE);
+    close(clientFileDescriptor);
 
+    double elapsed = end - start;
     pthread_mutex_lock(&time_lock);
     times[time_index++] = elapsed;
     pthread_mutex_unlock(&time_lock);
 
-    write(clientFileDescriptor, str, COM_BUFF_SIZE);
-    close(clientFileDescriptor);
     return NULL;
 }
 
@@ -74,21 +80,22 @@ int main(int argc, char *argv[])
     in_port_t port = atoi(argv[3]);
 
     // Initialize data and locks
+    int i;
     data = (char **)malloc(n * sizeof(char *));
     locks = (pthread_rwlock_t *)malloc(n * sizeof(pthread_rwlock_t));
     pthread_mutex_init(&time_lock, NULL);
 
-    for (int i = 0; i < n; i++)
+    for (i = 0; i < n; i++)
     {
         pthread_rwlock_init(&locks[i], NULL);
         data[i] = (char *)malloc(COM_BUFF_SIZE * sizeof(char));
+        sprintf(data[i], "String %d: the initial value", i);
     }
 
     // Create the socket
     struct sockaddr_in sock_var;
     int serverFileDescriptor = socket(AF_INET, SOCK_STREAM, 0);
     int clientFileDescriptor;
-    int i;
     pthread_t t[COM_NUM_REQUEST];
 
     sock_var.sin_addr.s_addr = inet_addr(ip);
@@ -129,7 +136,7 @@ int main(int argc, char *argv[])
     close(serverFileDescriptor);
 
     // Free data and locks
-    for (int i = 0; i < n; i++)
+    for (i = 0; i < n; i++)
     {
         pthread_rwlock_destroy(&locks[i]);
         free(data[i]);
