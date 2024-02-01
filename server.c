@@ -43,9 +43,9 @@ void *ServerAccess(void *args)
         setContent(req.msg, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
 
-        // Make sure this is valid 🤣
-        memcpy(str, req.msg, strlen(req.msg) + 1);
-        str[strlen(req.msg)] = '\0';
+        pthread_rwlock_rdlock(&locks[req.pos]);
+        getContent(str, req.pos, data);
+        pthread_rwlock_unlock(&locks[req.pos]);
     }
     GET_TIME(end);
 
