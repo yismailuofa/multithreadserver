@@ -1,1 +1,7 @@
 .vscode/*
+attacker
+*.o
+client
+main
+server_output_time_aggregated
+```

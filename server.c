@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
     {
         pthread_rwlock_init(&locks[i], NULL);
         data[i] = (char *)malloc(COM_BUFF_SIZE * sizeof(char));
+        sprintf(data[i], "String %d: the initial value", i);
     }
 
     // Create the socket
