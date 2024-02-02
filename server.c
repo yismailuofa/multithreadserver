@@ -27,10 +27,9 @@ void *ServerAccess(void *args)
 
     read(clientFileDescriptor, str, COM_BUFF_SIZE);
     str[COM_BUFF_SIZE - 1] = '\0';
-    
-    ParseMsg(str, &req);
-    //memset(str, 0, COM_BUFF_SIZE - 1);
 
+    ParseMsg(str, &req);
+    // memset(str, 0, COM_BUFF_SIZE - 1);
 
     GET_TIME(start);
     if (req.is_read)
@@ -45,17 +44,8 @@ void *ServerAccess(void *args)
         setContent(req.msg, req.pos, data);
         pthread_rwlock_unlock(&locks[req.pos]);
 
-<<<<<<< HEAD
-        // // Make sure this is valid 🤣
-        // memcpy(str, req.msg, strlen(req.msg) + 1);
-        // str[strlen(req.msg)] = '\0';
-
         pthread_rwlock_rdlock(&locks[req.pos]);
         getContent(rec, req.pos, data);
-=======
-        pthread_rwlock_rdlock(&locks[req.pos]);
-        getContent(str, req.pos, data);
->>>>>>> 3934fb962862f7523af0c701204cfa92c260c377
         pthread_rwlock_unlock(&locks[req.pos]);
     }
     GET_TIME(end);
