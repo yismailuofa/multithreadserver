@@ -25,11 +25,10 @@ void *ServerAccess(void *args)
     double start, end;
     ClientRequest req;
 
-    read(clientFileDescriptor, str, COM_BUFF_SIZE);
+    read(clientFileDescriptor, str, COM_BUFF_SIZE - 1);
     str[COM_BUFF_SIZE - 1] = '\0';
 
     ParseMsg(str, &req);
-    // memset(str, 0, COM_BUFF_SIZE - 1);
 
     GET_TIME(start);
     if (req.is_read)
